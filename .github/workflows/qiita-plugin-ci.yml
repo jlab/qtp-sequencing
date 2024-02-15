@@ -85,6 +85,10 @@ jobs:
           pip install -U pip
           pip install .
           configure_qtp_sequencing --env-script "source /home/runner/.profile; conda activate qtp-sequencing" --server-cert $QIITA_SERVER_CERT
+          echo "-----------------STEFAN----------------------------------"
+          cat /home/runner/.profile
+          echo "------------------STEFAN---------------------------------"
+          
 
       - name: Starting services
         shell: bash -l {0}
