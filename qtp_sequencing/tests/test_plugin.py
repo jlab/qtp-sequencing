@@ -14,6 +14,7 @@ from tempfile import mkdtemp
 from json import dumps
 from gzip import GzipFile
 from time import sleep
+from os import environ
 
 from qiita_client.testing import PluginTestCase
 
@@ -63,7 +64,8 @@ class PluginTests(PluginTestCase):
         with GzipFile(fwd_fp, mode='w', mtime=1) as fh:
             fh.write(READS.encode())
 
-        plugin("https://localhost:21174", job_id, self.out_dir)
+        plugin(environ.get('QIITA_BASE_URL', "https://localhost:21174"),
+               job_id, self.out_dir)
         self._wait_job(job_id)
         obs = self.qclient.get_job_info(job_id)
         self.assertEqual(obs['status'], 'success')
@@ -97,7 +99,8 @@ class PluginTests(PluginTestCase):
         job_id = self.qclient.post(
             '/apitest/processing_job/', data=data)['job']
 
-        plugin("https://localhost:21174", job_id, self.out_dir)
+        plugin(environ.get('QIITA_BASE_URL', "https://localhost:21174"),
+               job_id, self.out_dir)
         self._wait_job(job_id)
         obs = self.qclient.get_job_info(job_id)
         self.assertEqual(obs['status'], 'success')
@@ -113,7 +116,8 @@ class PluginTests(PluginTestCase):
                 'status': 'running'}
         job_id = self.qclient.post(
             '/apitest/processing_job/', data=data)['job']
-        plugin("https://localhost:21174", job_id, self.out_dir)
+        plugin(environ.get('QIITA_BASE_URL', "https://localhost:21174"),
+               job_id, self.out_dir)
         self._wait_job(job_id)
         obs = self.qclient.get_job_info(job_id)
         self.assertEqual(obs['status'], 'error')
