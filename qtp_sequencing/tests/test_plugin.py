@@ -7,8 +7,8 @@
 # -----------------------------------------------------------------------------
 
 from unittest import main
-from os import remove
-from os.path import exists, isdir, join
+from os import remove, environ, makedirs
+from os.path import exists, isdir, join, dirname
 from shutil import rmtree
 from tempfile import mkdtemp
 from json import dumps
@@ -16,6 +16,7 @@ from gzip import GzipFile
 from time import sleep
 
 from qiita_client.testing import PluginTestCase
+from qiita_client.plugin import BaseQiitaPlugin
 
 from qtp_sequencing import plugin
 
@@ -24,6 +25,16 @@ class PluginTests(PluginTestCase):
     def setUp(self):
         self.out_dir = mkdtemp()
         self._clean_up_files = [self.out_dir]
+
+        # as we access functions directly, plugin configuration is not parsed,
+        # thus resort to environment variable here
+        self.qclient._plugincoupling = environ.get(
+            'QIITA_PLUGINCOUPLING', BaseQiitaPlugin._DEFAULT_PLUGIN_COUPLINGS)
+
+        # set otherwise secret knowledge about location of QIITA_BASE_DIR
+        self.BASE_DATA_DIR = environ.get(
+            'BASE_DATA_DIR', '/qiita/qiita_db/support_files/test_data/'
+        )
 
     def tearDown(self):
         for fp in self._clean_up_files:
@@ -56,12 +67,17 @@ class PluginTests(PluginTestCase):
 
         bcds_fp = files['raw_barcodes'][0]['filepath']
         self._clean_up_files.append(bcds_fp)
+        makedirs(dirname(bcds_fp), exist_ok=True)
         with GzipFile(bcds_fp, mode='w', mtime=1) as fh:
             fh.write(BARCODES.encode())
+        self.qclient.push_file_to_central(bcds_fp)
+
         fwd_fp = files['raw_forward_seqs'][0]['filepath']
         self._clean_up_files.append(fwd_fp)
+        makedirs(dirname(fwd_fp), exist_ok=True)
         with GzipFile(fwd_fp, mode='w', mtime=1) as fh:
             fh.write(READS.encode())
+        self.qclient.push_file_to_central(fwd_fp)
 
         plugin("https://localhost:21174", job_id, self.out_dir)
         self._wait_job(job_id)
@@ -69,12 +85,18 @@ class PluginTests(PluginTestCase):
         self.assertEqual(obs['status'], 'success')
 
     def test_plugin_validate(self):
-        fp = join(self.out_dir, 'prefix1.fastq')
+        fp = join(self.BASE_DATA_DIR, 'uploads', '1', 'prefix1.fastq')
+        makedirs(dirname(fp), exist_ok=True)
         with open(fp, 'w') as f:
             f.write(READS)
-        fp2 = join(self.out_dir, 'prefix1_b.fastq')
+        self._clean_up_files.append(self.qclient.push_file_to_central(fp))
+
+        fp2 = join(self.BASE_DATA_DIR, 'uploads', '1', 'prefix1_b.fastq')
+        makedirs(dirname(fp2), exist_ok=True)
         with open(fp2, 'w') as f:
             f.write(BARCODES)
+        self._clean_up_files.append(self.qclient.push_file_to_central(fp2))
+
         prep_info = {"1.SKB2.640194": {"not_a_run_prefix": "prefix1"}}
         files = {'raw_forward_seqs': [fp],
                  'raw_barcodes': [fp2]}

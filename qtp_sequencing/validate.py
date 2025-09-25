@@ -85,8 +85,12 @@ def _gzip_file(qclient, filepath, test=False):
                          % (std_out, std_err, gz_cmd))
             else:
                 # removing non gz file
+                # As of 2025-09.25, this is not done when using https plugin
+                # coupling, as I hesitate to expose endpoints which allow
+                # deletion of files. Users might see uncompressed left overs in
+                # their download sections therefore.
                 remove(filepath)
-                return_fp = '%s.gz' % filepath
+                return_fp = qclient.push_file_to_central('%s.gz' % filepath)
     return return_fp, error
 
 
@@ -624,13 +628,15 @@ def validate(qclient, job_id, parameters, out_dir):
     # artifacts[0].files: there is only one artifact
     for fp, fpt in artifacts[0].files:
         files[fpt].append(fp)
-    artifact_information = _generate_html_summary(a_type, files, out_dir)
+    artifact_information = _generate_html_summary(
+        qclient, a_type, files, out_dir)
     summary_fp = f'{out_dir}/index.html'
     with open(summary_fp, 'w') as fp:
         fp.write(artifact_information)
 
     # inserting the summary into the artifact
-    artifacts[0].files.append((summary_fp, 'html_summary'))
+    artifacts[0].files.append(
+        (qclient.push_file_to_central(summary_fp), 'html_summary'))
 
     stefan("RETURN: artifacts=%s\nartifacts[0].files=%s" % (artifacts, artifacts[0].files))
     return status, artifacts, error_msg
