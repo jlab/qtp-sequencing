@@ -38,10 +38,6 @@ MUST_GZ = {
     # preprocessed files: demultiplexed, trimmed
     'preprocessed_fastq', 'preprocessed_fasta'}
 
-def stefan(msg):
-    with open('/stefan.log', 'a') as f:
-        f.write(msg + "\n")
-
 def _gzip_file(qclient, filepath, test=False):
     """gzip the given filepath if needed
 
@@ -89,7 +85,7 @@ def _gzip_file(qclient, filepath, test=False):
                 # coupling, as I hesitate to expose endpoints which allow
                 # deletion of files. Users might see uncompressed left overs in
                 # their download sections therefore.
-                remove(filepath)
+                qclient.delete_file_from_central(filepath)
                 return_fp = qclient.push_file_to_central('%s.gz' % filepath)
     return return_fp, error
 
@@ -218,7 +214,6 @@ def _validate_multiple(qclient, job_id, prep_info, files, atype, test=False):
     filepaths = []
     for fps_type, fps in files.items():
         for fp in fps:
-            fp = qclient.fetch_file_from_central(fp)
             if fps_type in MUST_GZ:
                 fp, error_msg = _gzip_file(qclient, fp, test)
                 if error_msg is not None:
@@ -358,7 +353,8 @@ def _validate_per_sample_FASTQ(qclient, job_id, prep_info, files, test=False):
     empty_files = []
     for fps_type, fps in files.items():
         for fp in fps:
-            fp = qclient.fetch_file_from_central(fp)
+            if not test:
+                fp = qclient.fetch_file_from_central(fp)
             try:
                 fp_size = getsize(fp)
             except OSError:
@@ -604,7 +600,6 @@ def validate(qclient, job_id, parameters, out_dir):
     qclient.update_job_step(job_id, "Step 1: Collecting prep information")
     prep_info = qclient.get("/qiita_db/prep_template/%s/data/" % prep_id)
     prep_info = prep_info['data']
-    stefan("prep_info=%s\nfiles=%s\na_type=%s\nout_dir=%s\n\n" % (prep_info, files, a_type, out_dir))
     _vm = ['SFF', 'FASTQ', 'FASTA', 'FASTA_Sanger', 'FASTA_preprocessed']
     if a_type in _vm:
         reply = _validate_multiple(qclient, job_id, prep_info, files, a_type)
@@ -638,5 +633,4 @@ def validate(qclient, job_id, parameters, out_dir):
     artifacts[0].files.append(
         (qclient.push_file_to_central(summary_fp), 'html_summary'))
 
-    stefan("RETURN: artifacts=%s\nartifacts[0].files=%s" % (artifacts, artifacts[0].files))
     return status, artifacts, error_msg
