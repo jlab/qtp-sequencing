@@ -7,7 +7,6 @@
 # -----------------------------------------------------------------------------
 
 from os.path import basename, join, splitext, getsize, dirname, exists
-from os import remove
 from json import loads
 from shutil import copy
 from h5py import File
@@ -37,6 +36,7 @@ MUST_GZ = {
     'raw_forward_seqs', 'raw_barcodes', 'raw_reverse_seqs', 'raw_fasta',
     # preprocessed files: demultiplexed, trimmed
     'preprocessed_fastq', 'preprocessed_fasta'}
+
 
 def _gzip_file(qclient, filepath, test=False):
     """gzip the given filepath if needed
