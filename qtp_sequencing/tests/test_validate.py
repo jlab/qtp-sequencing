@@ -8,8 +8,9 @@
 
 from unittest import main
 from tempfile import mkdtemp, mkstemp
-from os import remove, close
-from os.path import exists, isdir, basename, splitext, join, dirname, abspath
+from os import remove, close, environ, makedirs, sep
+from os.path import (exists, isdir, basename, splitext, join, dirname,
+                     abspath, relpath)
 from inspect import currentframe, getfile
 from shutil import copyfile
 from shutil import rmtree
@@ -19,6 +20,7 @@ from qiita_client import ArtifactInfo
 from qiita_client.testing import PluginTestCase
 from h5py import File
 from qiita_files.demux import to_hdf5
+from qiita_client.plugin import BaseQiitaPlugin
 
 from qtp_sequencing.validate import (
     _validate_multiple, _validate_per_sample_FASTQ, _validate_demux_file,
@@ -34,6 +36,16 @@ class ValidateTests(PluginTestCase):
 
         self._clean_up_files = []
 
+        # as we access functions directly, plugin configuration is not parsed,
+        # thus resort to environment variable here
+        self.qclient._plugincoupling = environ.get(
+            'QIITA_PLUGINCOUPLING', BaseQiitaPlugin._DEFAULT_PLUGIN_COUPLINGS)
+
+        # set otherwise secret knowledge about location of QIITA_BASE_DIR
+        self.BASE_DATA_DIR = environ.get(
+            'BASE_DATA_DIR', '/qiita/qiita_db/support_files/test_data/'
+        )
+
     def tearDown(self):
         for fp in self._clean_up_files:
             if exists(fp):
@@ -42,12 +54,30 @@ class ValidateTests(PluginTestCase):
                 else:
                     remove(fp)
 
+    def _add_qiita_base_dir(self, orig_fp, only_fp_update=False):
+        """Pushs a file to qiita main AND adapts given filepath accordingly."""
+        if not only_fp_update:
+            self.qclient.push_file_to_central(orig_fp)
+        return join(self.BASE_DATA_DIR, relpath(orig_fp, sep))
+
     def _create_template_and_job(self, prep_info, files, atype):
         data = {'prep_info': dumps(prep_info),
                 'study': 1,
                 'data_type': '16S'}
         template = self.qclient.post(
             '/apitest/prep_template/', data=data)['prep']
+
+        # push files to qiita main
+        for fp_type, fps in files.items():
+            # demux_fp comes as string not as list. Make it a list here for
+            # convenience
+            if isinstance(fps, str):
+                fps = [fps]
+            for fp in fps:
+                # not all test require actual presents of files but operate
+                # on filepath information only
+                if exists(fp):
+                    self.qclient.push_file_to_central(fp)
 
         parameters = {'template': template,
                       'analysis': None,
@@ -249,14 +279,16 @@ class ValidateTests(PluginTestCase):
         prep_info = {"1.SKB2.640194": {"run_prefix": "prefix1"},
                      "1.SKM4.640180": {"run_prefix": "prefix2"},
                      "1.SKB3.640195": {"run_prefix": "prefix3"}}
-        files = {'raw_forward_seqs': raw_files}
+        files = {'raw_forward_seqs':
+                 list(map(self._add_qiita_base_dir, raw_files))}
         job_id, _ = self._create_template_and_job(
             prep_info, files, "per_sample_FASTQ")
         obs_success, obs_ainfo, obs_error = _validate_per_sample_FASTQ(
             self.qclient, job_id, prep_info, files)
         self.assertEqual(obs_error, "")
         self.assertTrue(obs_success)
-        filepaths = [('%s.gz' % x, 'raw_forward_seqs') for x in raw_files]
+        filepaths = [(self._add_qiita_base_dir('%s.gz' % x, True),
+                      'raw_forward_seqs') for x in raw_files]
         exp = [ArtifactInfo(None, "per_sample_FASTQ", filepaths)]
         self.assertEqual(obs_ainfo, exp)
 
@@ -287,14 +319,16 @@ class ValidateTests(PluginTestCase):
         prep_info = {"1.SKB2.640194": {"not_a_run_prefix": "prefix1"},
                      "1.SKM4.640180": {"not_a_run_prefix": "prefix1"},
                      "1.SKB3.640195": {"not_a_run_prefix": "prefix2"}}
-        files = {'raw_forward_seqs': raw_files}
+        files = {'raw_forward_seqs':
+                 list(map(self._add_qiita_base_dir, raw_files))}
         job_id, _ = self._create_template_and_job(
             prep_info, files, "per_sample_FASTQ")
         obs_success, obs_ainfo, obs_error = _validate_per_sample_FASTQ(
             self.qclient, job_id, prep_info, files)
         self.assertTrue(obs_success)
 
-        filepaths = [('%s.gz' % x, 'raw_forward_seqs') for x in raw_files]
+        filepaths = [(self._add_qiita_base_dir('%s.gz' % x, True),
+                      'raw_forward_seqs') for x in raw_files]
         exp = [ArtifactInfo(None, "per_sample_FASTQ", filepaths)]
         self.assertEqual(obs_ainfo, exp)
         self.assertEqual(obs_error, "")
@@ -313,21 +347,22 @@ class ValidateTests(PluginTestCase):
         prep_info = {"1.SKB2.640194": {"not_a_run_prefix": "prefix1"},
                      "1.SKM4.640180": {"not_a_run_prefix": "prefix1"},
                      "1.SKB3.640195": {"not_a_run_prefix": "prefix2"}}
-        files = {'preprocessed_fastq': [f1, f2, f3]}
+        files = {'preprocessed_fastq':
+                 list(map(self._add_qiita_base_dir, [f1, f2, f3]))}
         job_id, _ = self._create_template_and_job(
             prep_info, files, "per_sample_FASTQ")
         obs_success, obs_ainfo, obs_error = _validate_per_sample_FASTQ(
             self.qclient, job_id, prep_info, files)
         self.assertTrue(obs_success)
-        filepaths = [(f1 + '.gz', 'preprocessed_fastq'),
-                     (f2 + '.gz', 'preprocessed_fastq'),
-                     (f3 + '.gz', 'preprocessed_fastq')]
+        filepaths = [(self._add_qiita_base_dir(x + '.gz', True),
+                      'preprocessed_fastq') for x in [f1, f2, f3]]
         exp = [ArtifactInfo(None, "per_sample_FASTQ", filepaths)]
         self.assertEqual(obs_ainfo, exp)
         self.assertEqual(obs_error, "")
         # making sure the regular fastq files doesn't exist anymore but
         # the gz do
-        self.assertFalse(exists(f1))
+        if self.qclient._plugincoupling == 'filesystem':
+            self.assertFalse(exists(f1))
         self.assertTrue(exists(f1 + '.gz'))
 
         f1 = join(self.source_dir, 'SKB2.640194_file_R1.fastq')
@@ -350,14 +385,16 @@ class ValidateTests(PluginTestCase):
         prep_info = {"1.SKB2.640194": {"not_a_run_prefix": "prefix1"},
                      "1.SKM4.640180": {"not_a_run_prefix": "prefix1"},
                      "1.SKB3.640195": {"not_a_run_prefix": "prefix2"}}
-        files = {'preprocessed_fastq': raw_files}
+        files = {'preprocessed_fastq':
+                 list(map(self._add_qiita_base_dir, raw_files))}
         job_id, _ = self._create_template_and_job(
             prep_info, files, "per_sample_FASTQ")
         obs_success, obs_ainfo, obs_error = _validate_per_sample_FASTQ(
             self.qclient, job_id, prep_info, files)
         self.assertEqual(obs_error, "")
         self.assertTrue(obs_success)
-        filepaths = [('%s.gz' % x, 'preprocessed_fastq') for x in raw_files]
+        filepaths = [(self._add_qiita_base_dir('%s.gz' % x, True),
+                      'preprocessed_fastq') for x in raw_files]
         exp = [ArtifactInfo(None, "per_sample_FASTQ", filepaths)]
         self.assertEqual(obs_ainfo, exp)
 
@@ -562,7 +599,8 @@ class ValidateTests(PluginTestCase):
                      "1.SKM4.640180": {"run_prefix": "s2"},
                      "1.SKB3.640195": {"run_prefix": "s3"},
                      "1.SKB6.640176": {"run_prefix": "s4"}}
-        files = {'preprocessed_fastq': [fastq_fp]}
+        files = {'preprocessed_fastq':
+                 [self._add_qiita_base_dir(fastq_fp)]}
         job_id, _ = self._create_template_and_job(
             prep_info, files, "Demultiplexed")
         obs_success, obs_ainfo, obs_error = _validate_demultiplexed(
@@ -576,6 +614,7 @@ class ValidateTests(PluginTestCase):
                  if f[1] == 'preprocessed_demux'][0]
         with File(demux) as f:
             self.assertCountEqual(f.keys(), ["1.SKB2.640194", "1.SKM4.640180"])
+        self._clean_up_files.append(demux)
 
     def test_validate_demux_file_infer(self):
         demux_fp, _, out_dir = self._generate_files({'s1': 'SKB2.640194',
@@ -667,7 +706,8 @@ class ValidateTests(PluginTestCase):
                          "'Demultiplexed'")
 
     def test_validate_success(self):
-        test_dir = mkdtemp()
+        test_dir = join(self.BASE_DATA_DIR, 'uploads', '1')
+        makedirs(test_dir, exist_ok=True)
         out_dir = mkdtemp()
         self._clean_up_files.append(test_dir)
         self._clean_up_files.append(out_dir)
