@@ -8,13 +8,14 @@
 
 from unittest import main
 from tempfile import mkdtemp
-from os import remove, makedirs, sep
+from os import remove, makedirs, sep, environ
 
 from os.path import exists, isdir, join, dirname, relpath
 from shutil import rmtree, copyfile
 from json import dumps
 
 from qiita_client.testing import PluginTestCase
+from qiita_client.plugin import BaseQiitaPlugin
 from gzip import GzipFile
 
 from qtp_sequencing.summary import (
@@ -242,11 +243,13 @@ class SummaryTestsNotDemux(PluginTestCase):
         self.assertCountEqual(obs, '\n'.join(exp))
 
     def test_summary_demultiplexed(self):
+        test_dir = mkdtemp()
+        self._clean_up_files.append(test_dir)
+
         artifact_type = 'Demultiplexed'
-        fp_demux = '101_seqs.tmp.demux'
+        fp_demux = join(test_dir, '101_seqs.tmp.demux')
         copyfile(join(dirname(__file__), 'test_data', '101_seqs.demux'),
                  fp_demux)
-        self._clean_up_files.append(fp_demux)
         filepaths = {
             'preprocessed_demux': [self._add_qiita_base_dir(fp_demux)],
             'preprocessed_fastq': ['ignored']}
