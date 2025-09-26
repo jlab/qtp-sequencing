@@ -154,7 +154,6 @@ def _summary_not_demultiplexed(qclient, artifact_type, filepaths):
         # Step 2: generate HTML summary
         # md5, from http://stackoverflow.com/a/3431838
         for i, fp in enumerate(fps):
-            stefan("summary for file %s %s\n" % (fp, exists(fp)))
             fn = basename(fp)
             with open(fp, "rb") as f:
                 hash_md5 = md5()
