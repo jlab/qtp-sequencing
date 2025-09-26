@@ -27,6 +27,16 @@ class SummaryTestsNotDemux(PluginTestCase):
         self.out_dir = mkdtemp()
         self._clean_up_files = [self.out_dir]
 
+        # as we access functions directly, plugin configuration is not parsed,
+        # thus resort to environment variable here
+        self.qclient._plugincoupling = environ.get(
+            'QIITA_PLUGINCOUPLING', BaseQiitaPlugin._DEFAULT_PLUGIN_COUPLINGS)
+
+        # set otherwise secret knowledge about location of QIITA_BASE_DIR
+        self.BASE_DATA_DIR = environ.get(
+            'BASE_DATA_DIR', '/qiita/qiita_db/support_files/test_data/'
+        )
+
     def tearDown(self):
         for fp in self._clean_up_files:
             if exists(fp):
