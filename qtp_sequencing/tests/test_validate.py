@@ -8,7 +8,7 @@
 
 from unittest import main
 from tempfile import mkdtemp, mkstemp
-from os import remove, close, environ, makedirs, sep
+from os import remove, close, environ, sep
 from os.path import (exists, isdir, basename, splitext, join, dirname,
                      abspath, relpath)
 from inspect import currentframe, getfile

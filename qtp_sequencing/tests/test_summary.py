@@ -8,9 +8,9 @@
 
 from unittest import main
 from tempfile import mkdtemp
-from os import remove, makedirs, sep, environ
+from os import remove, makedirs, environ
 
-from os.path import exists, isdir, join, dirname, relpath
+from os.path import exists, isdir, join, dirname
 from shutil import rmtree, copyfile
 from json import dumps
 
