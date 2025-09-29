@@ -21,6 +21,7 @@ from gzip import GzipFile
 from qtp_sequencing.summary import (
     generate_html_summary, _summary_demultiplexed, _summary_not_demultiplexed,
     _summary_FASTA_preprocessed)
+from qtp_sequencing.tests.test_validate import _deposite_in_qiita_basedir
 
 
 class SummaryTestsNotDemux(PluginTestCase):
@@ -33,11 +34,6 @@ class SummaryTestsNotDemux(PluginTestCase):
         self.qclient._plugincoupling = environ.get(
             'QIITA_PLUGINCOUPLING', BaseQiitaPlugin._DEFAULT_PLUGIN_COUPLINGS)
 
-        # set otherwise secret knowledge about location of QIITA_BASE_DIR
-        self.BASE_DATA_DIR = environ.get(
-            'BASE_DATA_DIR', '/qiita/qiita_db/support_files/test_data/'
-        )
-
     def tearDown(self):
         for fp in self._clean_up_files:
             if exists(fp):
@@ -45,12 +41,6 @@ class SummaryTestsNotDemux(PluginTestCase):
                     rmtree(fp)
                 else:
                     remove(fp)
-
-    def _add_qiita_base_dir(self, orig_fp, only_fp_update=False):
-        """Pushs a file to qiita main AND adapts given filepath accordingly."""
-        if not only_fp_update:
-            self.qclient.push_file_to_central(orig_fp)
-        return join(self.BASE_DATA_DIR, relpath(orig_fp, sep))
 
     def test_generate_html_summary_no_demux(self):
         # Create a job in Qiita
@@ -251,7 +241,8 @@ class SummaryTestsNotDemux(PluginTestCase):
         copyfile(join(dirname(__file__), 'test_data', '101_seqs.demux'),
                  fp_demux)
         filepaths = {
-            'preprocessed_demux': [self._add_qiita_base_dir(fp_demux)],
+            'preprocessed_demux': [
+                _deposite_in_qiita_basedir(self.qclient, fp_demux)],
             'preprocessed_fastq': ['ignored']}
 
         obs = _summary_demultiplexed(
@@ -285,7 +276,7 @@ class SummaryTestsNotDemux(PluginTestCase):
             copyfile(input, output)
             fna_files.append(output)
         files = {'preprocessed_fasta':
-                 list(map(self._add_qiita_base_dir, fna_files))}
+                 _deposite_in_qiita_basedir(self.qclient, fna_files)}
 
         obs = _summary_FASTA_preprocessed(
             self.qclient, artifact_type, files, self.out_dir)
