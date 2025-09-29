@@ -19,6 +19,7 @@ from qiita_client.testing import PluginTestCase
 from qiita_client.plugin import BaseQiitaPlugin
 
 from qtp_sequencing import plugin
+from qtp_sequencing.tests.test_validate import _deposite_in_qiita_basedir
 
 
 class PluginTests(PluginTestCase):
@@ -30,11 +31,6 @@ class PluginTests(PluginTestCase):
         # thus resort to environment variable here
         self.qclient._plugincoupling = environ.get(
             'QIITA_PLUGINCOUPLING', BaseQiitaPlugin._DEFAULT_PLUGIN_COUPLINGS)
-
-        # set otherwise secret knowledge about location of QIITA_BASE_DIR
-        self.BASE_DATA_DIR = environ.get(
-            'BASE_DATA_DIR', '/qiita/qiita_db/support_files/test_data/'
-        )
 
     def tearDown(self):
         for fp in self._clean_up_files:
@@ -85,21 +81,17 @@ class PluginTests(PluginTestCase):
         self.assertEqual(obs['status'], 'success')
 
     def test_plugin_validate(self):
-        fp = join(self.BASE_DATA_DIR, 'uploads', '1', 'prefix1.fastq')
-        makedirs(dirname(fp), exist_ok=True)
+        fp = join(self.out_dir, 'prefix1.fastq')
         with open(fp, 'w') as f:
             f.write(READS)
-        self._clean_up_files.append(self.qclient.push_file_to_central(fp))
-
-        fp2 = join(self.BASE_DATA_DIR, 'uploads', '1', 'prefix1_b.fastq')
-        makedirs(dirname(fp2), exist_ok=True)
+        fp2 = join(self.out_dir, 'prefix1_b.fastq')
         with open(fp2, 'w') as f:
             f.write(BARCODES)
-        self._clean_up_files.append(self.qclient.push_file_to_central(fp2))
-
         prep_info = {"1.SKB2.640194": {"not_a_run_prefix": "prefix1"}}
-        files = {'raw_forward_seqs': [fp],
-                 'raw_barcodes': [fp2]}
+        files = {'raw_forward_seqs': [
+            _deposite_in_qiita_basedir(self.qclient, fp)],
+                 'raw_barcodes': [
+            _deposite_in_qiita_basedir(self.qclient, fp2)]}
         atype = "FASTQ"
         data = {'prep_info': dumps(prep_info),
                 'study': 1,
