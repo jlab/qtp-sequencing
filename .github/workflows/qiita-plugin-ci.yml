@@ -125,7 +125,6 @@ jobs:
           conda activate qtp-sequencing
           export QIITA_ROOTCA_CERT=`pwd`/qiita-dev/qiita_core/support_files/ci_rootca.crt
           export QIITA_CONFIG_FP=`pwd`/qiita-dev/qiita_core/support_files/config_test_local.cfg
-          export BASE_DATA_DIR=`grep BASE_DATA_DIR $QIITA_CONFIG_FP | cut -d "=" -f 2 | tr -d " "`
 
           nosetests --with-doctest --with-coverage -v --cover-package=qtp_sequencing
 
