@@ -6,8 +6,7 @@
 # The full license is in the file LICENSE, distributed with this software.
 # -----------------------------------------------------------------------------
 
-from os.path import basename, join, splitext, getsize, dirname
-from os import remove
+from os.path import basename, join, splitext, getsize, dirname, exists
 from json import loads
 from shutil import copy
 from h5py import File
@@ -16,6 +15,7 @@ from collections import defaultdict
 
 from qiita_client import ArtifactInfo
 from qiita_client.util import system_call
+from qiita_client.exceptions import ForbiddenError
 from qiita_files.util import open_file
 from qiita_files.demux import to_hdf5, to_ascii_file
 
@@ -39,11 +39,13 @@ MUST_GZ = {
     'preprocessed_fastq', 'preprocessed_fasta'}
 
 
-def _gzip_file(filepath, test=False):
+def _gzip_file(qclient, filepath, test=False):
     """gzip the given filepath if needed
 
     Parameters
     ----------
+    qclient : qiita_client.QiitaClient
+        The Qiita server client
     filepath : string
         The filepath to verify or compress
     test : bolean
@@ -62,6 +64,8 @@ def _gzip_file(filepath, test=False):
         return_fp = '%s.gz' % filepath
     else:
         is_gzip = False
+        if not exists(filepath):
+            qclient.fetch_file_from_central(filepath)
         try:
             with gopen(filepath, 'rb') as f:
                 f.read(1)
@@ -77,9 +81,19 @@ def _gzip_file(filepath, test=False):
                 error = ("Std out: %s\nStd err: %s\n\nCommand run was:\n%s"
                          % (std_out, std_err, gz_cmd))
             else:
-                # removing non gz file
-                remove(filepath)
-                return_fp = '%s.gz' % filepath
+                # As of 2025-11-13, this is not done when using https plugin
+                # coupling, as I hesitate to expose endpoints which allow
+                # deletion of files. Users might see uncompressed left overs in
+                # their download sections therefore.
+                # When Qiita is in test mode, a ForbiddenError will be thrown
+                # as test files are partially located outside of BASE_DATA_DIR
+                try:
+                    # removing non gz file
+                    qclient.delete_file_from_central(filepath)
+                except ForbiddenError:
+                    pass
+
+                return_fp = qclient.push_file_to_central('%s.gz' % filepath)
     return return_fp, error
 
 
@@ -208,7 +222,7 @@ def _validate_multiple(qclient, job_id, prep_info, files, atype, test=False):
     for fps_type, fps in files.items():
         for fp in fps:
             if fps_type in MUST_GZ:
-                fp, error_msg = _gzip_file(fp, test)
+                fp, error_msg = _gzip_file(qclient, fp, test)
                 if error_msg is not None:
                     return False, None, error_msg
             filepaths.append((fp, fps_type))
@@ -292,7 +306,7 @@ def _validate_per_sample_FASTQ(qclient, job_id, prep_info, files, test=False):
                      "preprocessed_fastq")
         return False, None, error_msg
 
-    # Make sure that we hve the same number of files than samples
+    # Make sure that we have the same number of files than samples
     if 'raw_reverse_seqs' in files:
         rev_count = len(files['raw_reverse_seqs'])
     else:
@@ -346,6 +360,8 @@ def _validate_per_sample_FASTQ(qclient, job_id, prep_info, files, test=False):
     empty_files = []
     for fps_type, fps in files.items():
         for fp in fps:
+            if not test:
+                fp = qclient.fetch_file_from_central(fp)
             try:
                 fp_size = getsize(fp)
             except OSError:
@@ -355,7 +371,7 @@ def _validate_per_sample_FASTQ(qclient, job_id, prep_info, files, test=False):
                 empty_files.append(basename(fp))
 
             if fps_type in MUST_GZ:
-                fp, error_msg = _gzip_file(fp, test)
+                fp, error_msg = _gzip_file(qclient, fp, test)
                 if error_msg is not None:
                     return False, None, error_msg
 
@@ -457,14 +473,14 @@ def _validate_demux_file(qclient, job_id, prep_info, out_dir, demux_fp,
     if not fastq_fp:
         fastq_fp = join(out_dir, "%s.fastq" % name)
         to_ascii_file(demux_fp, fastq_fp, out_format='fastq')
-        fastq_fp, error_msg = _gzip_file(fastq_fp)
+        fastq_fp, error_msg = _gzip_file(qclient, fastq_fp)
         if error_msg is not None:
             return False, None, error_msg
 
     if not fasta_fp:
         fasta_fp = join(out_dir, "%s.fasta" % name)
         to_ascii_file(demux_fp, fasta_fp, out_format='fasta')
-        fasta_fp, error_msg = _gzip_file(fasta_fp)
+        fasta_fp, error_msg = _gzip_file(qclient, fasta_fp)
         if error_msg is not None:
             return False, None, error_msg
 
@@ -520,11 +536,11 @@ def _validate_demultiplexed(qclient, job_id, prep_info, files, out_dir):
         return False, None, error_msg
 
     # Check which files we have available:
-    fasta = (files['preprocessed_fasta'][0]
+    fasta = (qclient.fetch_file_from_central(files['preprocessed_fasta'][0])
              if 'preprocessed_fasta' in files else None)
-    fastq = (files['preprocessed_fastq'][0]
+    fastq = (qclient.fetch_file_from_central(files['preprocessed_fastq'][0])
              if 'preprocessed_fastq' in files else None)
-    demux = (files['preprocessed_demux'][0]
+    demux = (qclient.fetch_file_from_central(files['preprocessed_demux'][0])
              if 'preprocessed_demux' in files else None)
     log = (files['log'][0] if 'log' in files else None)
     if demux:
@@ -591,7 +607,6 @@ def validate(qclient, job_id, parameters, out_dir):
     qclient.update_job_step(job_id, "Step 1: Collecting prep information")
     prep_info = qclient.get("/qiita_db/prep_template/%s/data/" % prep_id)
     prep_info = prep_info['data']
-
     _vm = ['SFF', 'FASTQ', 'FASTA', 'FASTA_Sanger', 'FASTA_preprocessed']
     if a_type in _vm:
         reply = _validate_multiple(qclient, job_id, prep_info, files, a_type)
@@ -615,12 +630,14 @@ def validate(qclient, job_id, parameters, out_dir):
     # artifacts[0].files: there is only one artifact
     for fp, fpt in artifacts[0].files:
         files[fpt].append(fp)
-    artifact_information = _generate_html_summary(a_type, files, out_dir)
+    artifact_information = _generate_html_summary(
+        qclient, a_type, files, out_dir)
     summary_fp = f'{out_dir}/index.html'
     with open(summary_fp, 'w') as fp:
         fp.write(artifact_information)
 
     # inserting the summary into the artifact
-    artifacts[0].files.append((summary_fp, 'html_summary'))
+    artifacts[0].files.append(
+        (qclient.push_file_to_central(summary_fp), 'html_summary'))
 
     return status, artifacts, error_msg

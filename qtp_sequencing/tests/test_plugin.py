@@ -7,8 +7,8 @@
 # -----------------------------------------------------------------------------
 
 from unittest import main
-from os import remove
-from os.path import exists, isdir, join
+from os import remove, makedirs
+from os.path import exists, isdir, join, dirname
 from shutil import rmtree
 from tempfile import mkdtemp
 from json import dumps
@@ -56,12 +56,17 @@ class PluginTests(PluginTestCase):
 
         bcds_fp = files['raw_barcodes'][0]['filepath']
         self._clean_up_files.append(bcds_fp)
+        makedirs(dirname(bcds_fp), exist_ok=True)
         with GzipFile(bcds_fp, mode='w', mtime=1) as fh:
             fh.write(BARCODES.encode())
+        self.qclient.push_file_to_central(bcds_fp)
+
         fwd_fp = files['raw_forward_seqs'][0]['filepath']
         self._clean_up_files.append(fwd_fp)
+        makedirs(dirname(fwd_fp), exist_ok=True)
         with GzipFile(fwd_fp, mode='w', mtime=1) as fh:
             fh.write(READS.encode())
+        self.qclient.push_file_to_central(fwd_fp)
 
         plugin("https://localhost:21174", job_id, self.out_dir)
         self._wait_job(job_id)
@@ -76,8 +81,8 @@ class PluginTests(PluginTestCase):
         with open(fp2, 'w') as f:
             f.write(BARCODES)
         prep_info = {"1.SKB2.640194": {"not_a_run_prefix": "prefix1"}}
-        files = {'raw_forward_seqs': [fp],
-                 'raw_barcodes': [fp2]}
+        files = {'raw_forward_seqs': [self.deposite_in_qiita_basedir(fp)],
+                 'raw_barcodes': [self.deposite_in_qiita_basedir(fp2)]}
         atype = "FASTQ"
         data = {'prep_info': dumps(prep_info),
                 'study': 1,

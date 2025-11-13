@@ -25,11 +25,13 @@ import matplotlib.pyplot as plt # noqa
 FILEPATH_TYPE_NO_FQTOOLS = ['SFF', 'FASTA_preprocessed']
 
 
-def _generate_html_summary(artifact_type, filepaths, out_dir):
+def _generate_html_summary(qclient, artifact_type, filepaths, out_dir):
     """Helper method to generate html_summary
 
     Parameters
     ----------
+    qclient : qiita_client.QiitaClient
+        The Qiita server client
     artifact_type : str
         The artifact_type to summarize
     filepaths : [(str, str)]
@@ -47,15 +49,15 @@ def _generate_html_summary(artifact_type, filepaths, out_dir):
     # splitting on those
     if artifact_type == 'Demultiplexed':
         artifact_information = '\n'.join(_summary_demultiplexed(
-            artifact_type, filepaths))
+            qclient, artifact_type, filepaths))
         if artifact_information is None:
             raise ValueError("We couldn't find a demux file in your artifact")
     elif artifact_type == 'FASTA_preprocessed':
         artifact_information = '\n'.join(_summary_FASTA_preprocessed(
-            artifact_type, filepaths, out_dir))
+            qclient, artifact_type, filepaths, out_dir))
     else:
         artifact_information = _summary_not_demultiplexed(
-            artifact_type, filepaths)
+            qclient, artifact_type, filepaths)
 
     return artifact_information
 
@@ -106,7 +108,7 @@ def generate_html_summary(qclient, job_id, parameters, out_dir):
     artifact_type = artifact_info['type']
 
     artifact_information = _generate_html_summary(
-        artifact_type, filepaths, out_dir)
+        qclient, artifact_type, filepaths, out_dir)
 
     of_fp = join(out_dir, "artifact_%d.html" % artifact_id)
     with open(of_fp, 'w') as of:
@@ -124,11 +126,13 @@ def generate_html_summary(qclient, job_id, parameters, out_dir):
     return success, None, error_msg
 
 
-def _summary_not_demultiplexed(artifact_type, filepaths):
+def _summary_not_demultiplexed(qclient, artifact_type, filepaths):
     """Generates the HTML summary for non Demultiplexed artifacts
 
     Parameters
     ----------
+    qclient : qiita_client.QiitaClient
+        The Qiita server client
     artifact_type : str
         The artifact type
     filepaths : [(str, str)]
@@ -193,11 +197,13 @@ def _summary_not_demultiplexed(artifact_type, filepaths):
     return df.to_html(index=False)
 
 
-def _summary_demultiplexed(artifact_type, filepaths):
+def _summary_demultiplexed(qclient, artifact_type, filepaths):
     """Generates the HTML summary for Demultiplexed artifacts
 
     Parameters
     ----------
+    qclient : qiita_client.QiitaClient
+        The Qiita server client
     artifact_type : str
         The artifact type
     filepaths : [(str, str)]
@@ -215,7 +221,7 @@ def _summary_demultiplexed(artifact_type, filepaths):
         return None
 
     # If demux_fps exists, it should contain only a single file
-    demux_fp = demux_fps[0]
+    demux_fp = qclient.fetch_file_from_central(demux_fps[0])
 
     # generating html summary
     artifact_information = []
@@ -248,11 +254,13 @@ def _summary_demultiplexed(artifact_type, filepaths):
     return artifact_information
 
 
-def _summary_FASTA_preprocessed(artifact_type, filepaths, out_dir):
+def _summary_FASTA_preprocessed(qclient, artifact_type, filepaths, out_dir):
     """Generates the HTML summary for Demultiplexed artifacts
 
     Parameters
     ----------
+    qclient : qiita_client.QiitaClient
+        The Qiita server client
     artifact_type : str
         The artifact type
     filepaths : [(str, str)]
@@ -266,7 +274,8 @@ def _summary_FASTA_preprocessed(artifact_type, filepaths, out_dir):
     list
         A list of strings with the html summary
     """
-    files = filepaths.get('preprocessed_fasta')
+    files = map(qclient.fetch_file_from_central,
+                filepaths.get('preprocessed_fasta'))
     cmd = f"quast %s -o {out_dir}/quast" % ' '.join(files)
     std_out, std_err, return_value = system_call(cmd)
     if return_value != 0:
