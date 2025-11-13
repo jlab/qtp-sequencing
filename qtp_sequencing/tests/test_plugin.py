@@ -16,21 +16,14 @@ from gzip import GzipFile
 from time import sleep
 
 from qiita_client.testing import PluginTestCase
-from qiita_client.plugin import BaseQiitaPlugin
 
 from qtp_sequencing import plugin
-from qtp_sequencing.tests.test_validate import _deposite_in_qiita_basedir
 
 
 class PluginTests(PluginTestCase):
     def setUp(self):
         self.out_dir = mkdtemp()
         self._clean_up_files = [self.out_dir]
-
-        # as we access functions directly, plugin configuration is not parsed,
-        # thus resort to environment variable here
-        self.qclient._plugincoupling = environ.get(
-            'QIITA_PLUGINCOUPLING', BaseQiitaPlugin._DEFAULT_PLUGIN_COUPLINGS)
 
     def tearDown(self):
         for fp in self._clean_up_files:
@@ -88,10 +81,8 @@ class PluginTests(PluginTestCase):
         with open(fp2, 'w') as f:
             f.write(BARCODES)
         prep_info = {"1.SKB2.640194": {"not_a_run_prefix": "prefix1"}}
-        files = {'raw_forward_seqs': [
-            _deposite_in_qiita_basedir(self.qclient, fp)],
-                 'raw_barcodes': [
-            _deposite_in_qiita_basedir(self.qclient, fp2)]}
+        files = {'raw_forward_seqs': [self.deposite_in_qiita_basedir(fp)],
+                 'raw_barcodes': [self.deposite_in_qiita_basedir(fp2)]}
         atype = "FASTQ"
         data = {'prep_info': dumps(prep_info),
                 'study': 1,
