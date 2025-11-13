@@ -15,6 +15,7 @@ from collections import defaultdict
 
 from qiita_client import ArtifactInfo
 from qiita_client.util import system_call
+from qiita_client.exceptions import ForbiddenError
 from qiita_files.util import open_file
 from qiita_files.demux import to_hdf5, to_ascii_file
 
@@ -80,12 +81,18 @@ def _gzip_file(qclient, filepath, test=False):
                 error = ("Std out: %s\nStd err: %s\n\nCommand run was:\n%s"
                          % (std_out, std_err, gz_cmd))
             else:
-                # removing non gz file
-                # As of 2025-09.25, this is not done when using https plugin
+                # As of 2025-11-13, this is not done when using https plugin
                 # coupling, as I hesitate to expose endpoints which allow
                 # deletion of files. Users might see uncompressed left overs in
                 # their download sections therefore.
-                qclient.delete_file_from_central(filepath)
+                # When Qiita is in test mode, a ForbiddenError will be thrown
+                # as test files are partially located outside of BASE_DATA_DIR
+                try:
+                    # removing non gz file
+                    qclient.delete_file_from_central(filepath)
+                except ForbiddenError:
+                    pass
+
                 return_fp = qclient.push_file_to_central('%s.gz' % filepath)
     return return_fp, error
 
