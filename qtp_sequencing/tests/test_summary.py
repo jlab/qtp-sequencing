@@ -8,7 +8,7 @@
 
 from unittest import main
 from tempfile import mkdtemp
-from os import remove, makedirs, environ
+from os import remove, makedirs
 
 from os.path import exists, isdir, join, dirname
 from shutil import rmtree, copyfile
