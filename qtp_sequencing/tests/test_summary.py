@@ -15,24 +15,17 @@ from shutil import rmtree, copyfile
 from json import dumps
 
 from qiita_client.testing import PluginTestCase
-from qiita_client.plugin import BaseQiitaPlugin
 from gzip import GzipFile
 
 from qtp_sequencing.summary import (
     generate_html_summary, _summary_demultiplexed, _summary_not_demultiplexed,
     _summary_FASTA_preprocessed)
-from qtp_sequencing.tests.test_validate import _deposite_in_qiita_basedir
 
 
 class SummaryTestsNotDemux(PluginTestCase):
     def setUp(self):
         self.out_dir = mkdtemp()
         self._clean_up_files = [self.out_dir]
-
-        # as we access functions directly, plugin configuration is not parsed,
-        # thus resort to environment variable here
-        self.qclient._plugincoupling = environ.get(
-            'QIITA_PLUGINCOUPLING', BaseQiitaPlugin._DEFAULT_PLUGIN_COUPLINGS)
 
     def tearDown(self):
         for fp in self._clean_up_files:
@@ -241,8 +234,7 @@ class SummaryTestsNotDemux(PluginTestCase):
         copyfile(join(dirname(__file__), 'test_data', '101_seqs.demux'),
                  fp_demux)
         filepaths = {
-            'preprocessed_demux': [
-                _deposite_in_qiita_basedir(self.qclient, fp_demux)],
+            'preprocessed_demux': [self.deposite_in_qiita_basedir(fp_demux)],
             'preprocessed_fastq': ['ignored']}
 
         obs = _summary_demultiplexed(
@@ -276,7 +268,7 @@ class SummaryTestsNotDemux(PluginTestCase):
             copyfile(input, output)
             fna_files.append(output)
         files = {'preprocessed_fasta':
-                 _deposite_in_qiita_basedir(self.qclient, fna_files)}
+                 self.deposite_in_qiita_basedir(fna_files)}
 
         obs = _summary_FASTA_preprocessed(
             self.qclient, artifact_type, files, self.out_dir)
