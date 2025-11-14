@@ -605,6 +605,7 @@ def validate(qclient, job_id, parameters, out_dir):
     qclient.update_job_step(job_id, "Step 1: Collecting prep information")
     prep_info = qclient.get("/qiita_db/prep_template/%s/data/" % prep_id)
     prep_info = prep_info['data']
+
     _vm = ['SFF', 'FASTQ', 'FASTA', 'FASTA_Sanger', 'FASTA_preprocessed']
     if a_type in _vm:
         reply = _validate_multiple(qclient, job_id, prep_info, files, a_type)

@@ -126,13 +126,11 @@ def generate_html_summary(qclient, job_id, parameters, out_dir):
     return success, None, error_msg
 
 
-def _summary_not_demultiplexed(qclient, artifact_type, filepaths):
+def _summary_not_demultiplexed(artifact_type, filepaths):
     """Generates the HTML summary for non Demultiplexed artifacts
 
     Parameters
     ----------
-    qclient : qiita_client.QiitaClient
-        The Qiita server client
     artifact_type : str
         The artifact type
     filepaths : [(str, str)]
@@ -197,13 +195,11 @@ def _summary_not_demultiplexed(qclient, artifact_type, filepaths):
     return df.to_html(index=False)
 
 
-def _summary_demultiplexed(qclient, artifact_type, filepaths):
+def _summary_demultiplexed(artifact_type, filepaths):
     """Generates the HTML summary for Demultiplexed artifacts
 
     Parameters
     ----------
-    qclient : qiita_client.QiitaClient
-        The Qiita server client
     artifact_type : str
         The artifact type
     filepaths : [(str, str)]
@@ -254,13 +250,11 @@ def _summary_demultiplexed(qclient, artifact_type, filepaths):
     return artifact_information
 
 
-def _summary_FASTA_preprocessed(qclient, artifact_type, filepaths, out_dir):
+def _summary_FASTA_preprocessed(artifact_type, filepaths, out_dir):
     """Generates the HTML summary for Demultiplexed artifacts
 
     Parameters
     ----------
-    qclient : qiita_client.QiitaClient
-        The Qiita server client
     artifact_type : str
         The artifact type
     filepaths : [(str, str)]
