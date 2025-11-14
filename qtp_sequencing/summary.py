@@ -221,7 +221,7 @@ def _summary_demultiplexed(qclient, artifact_type, filepaths):
         return None
 
     # If demux_fps exists, it should contain only a single file
-    demux_fp = qclient.fetch_file_from_central(demux_fps[0])
+    demux_fp = demux_fps[0]
 
     # generating html summary
     artifact_information = []
@@ -274,8 +274,7 @@ def _summary_FASTA_preprocessed(qclient, artifact_type, filepaths, out_dir):
     list
         A list of strings with the html summary
     """
-    files = map(qclient.fetch_file_from_central,
-                filepaths.get('preprocessed_fasta'))
+    files = filepaths.get('preprocessed_fasta')
     cmd = f"quast %s -o {out_dir}/quast" % ' '.join(files)
     std_out, std_err, return_value = system_call(cmd)
     if return_value != 0:
