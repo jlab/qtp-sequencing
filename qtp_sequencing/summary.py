@@ -25,13 +25,11 @@ import matplotlib.pyplot as plt # noqa
 FILEPATH_TYPE_NO_FQTOOLS = ['SFF', 'FASTA_preprocessed']
 
 
-def _generate_html_summary(qclient, artifact_type, filepaths, out_dir):
+def _generate_html_summary(artifact_type, filepaths, out_dir):
     """Helper method to generate html_summary
 
     Parameters
     ----------
-    qclient : qiita_client.QiitaClient
-        The Qiita server client
     artifact_type : str
         The artifact_type to summarize
     filepaths : [(str, str)]
