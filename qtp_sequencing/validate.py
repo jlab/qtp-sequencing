@@ -360,8 +360,6 @@ def _validate_per_sample_FASTQ(qclient, job_id, prep_info, files, test=False):
     empty_files = []
     for fps_type, fps in files.items():
         for fp in fps:
-            if not test:
-                fp = qclient.fetch_file_from_central(fp)
             try:
                 fp_size = getsize(fp)
             except OSError:
@@ -536,11 +534,11 @@ def _validate_demultiplexed(qclient, job_id, prep_info, files, out_dir):
         return False, None, error_msg
 
     # Check which files we have available:
-    fasta = (qclient.fetch_file_from_central(files['preprocessed_fasta'][0])
+    fasta = (files['preprocessed_fasta'][0]
              if 'preprocessed_fasta' in files else None)
-    fastq = (qclient.fetch_file_from_central(files['preprocessed_fastq'][0])
+    fastq = (files['preprocessed_fastq'][0]
              if 'preprocessed_fastq' in files else None)
-    demux = (qclient.fetch_file_from_central(files['preprocessed_demux'][0])
+    demux = (files['preprocessed_demux'][0]
              if 'preprocessed_demux' in files else None)
     log = (files['log'][0] if 'log' in files else None)
     if demux:
@@ -607,6 +605,7 @@ def validate(qclient, job_id, parameters, out_dir):
     qclient.update_job_step(job_id, "Step 1: Collecting prep information")
     prep_info = qclient.get("/qiita_db/prep_template/%s/data/" % prep_id)
     prep_info = prep_info['data']
+
     _vm = ['SFF', 'FASTQ', 'FASTA', 'FASTA_Sanger', 'FASTA_preprocessed']
     if a_type in _vm:
         reply = _validate_multiple(qclient, job_id, prep_info, files, a_type)
