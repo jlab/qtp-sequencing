@@ -49,15 +49,15 @@ def _generate_html_summary(qclient, artifact_type, filepaths, out_dir):
     # splitting on those
     if artifact_type == 'Demultiplexed':
         artifact_information = '\n'.join(_summary_demultiplexed(
-            qclient, artifact_type, filepaths))
+            artifact_type, filepaths))
         if artifact_information is None:
             raise ValueError("We couldn't find a demux file in your artifact")
     elif artifact_type == 'FASTA_preprocessed':
         artifact_information = '\n'.join(_summary_FASTA_preprocessed(
-            qclient, artifact_type, filepaths, out_dir))
+            artifact_type, filepaths, out_dir))
     else:
         artifact_information = _summary_not_demultiplexed(
-            qclient, artifact_type, filepaths)
+            artifact_type, filepaths)
 
     return artifact_information
 
@@ -108,7 +108,7 @@ def generate_html_summary(qclient, job_id, parameters, out_dir):
     artifact_type = artifact_info['type']
 
     artifact_information = _generate_html_summary(
-        qclient, artifact_type, filepaths, out_dir)
+        artifact_type, filepaths, out_dir)
 
     of_fp = join(out_dir, "artifact_%d.html" % artifact_id)
     with open(of_fp, 'w') as of:
