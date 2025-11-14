@@ -637,7 +637,6 @@ def validate(qclient, job_id, parameters, out_dir):
         fp.write(artifact_information)
 
     # inserting the summary into the artifact
-    artifacts[0].files.append(
-        (qclient.push_file_to_central(summary_fp), 'html_summary'))
+    artifacts[0].files.append((summary_fp, 'html_summary'))
 
     return status, artifacts, error_msg
