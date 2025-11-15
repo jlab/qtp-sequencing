@@ -629,8 +629,7 @@ def validate(qclient, job_id, parameters, out_dir):
     # artifacts[0].files: there is only one artifact
     for fp, fpt in artifacts[0].files:
         files[fpt].append(fp)
-    artifact_information = _generate_html_summary(
-        qclient, a_type, files, out_dir)
+    artifact_information = _generate_html_summary(a_type, files, out_dir)
     summary_fp = f'{out_dir}/index.html'
     with open(summary_fp, 'w') as fp:
         fp.write(artifact_information)
