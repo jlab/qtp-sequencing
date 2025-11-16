@@ -10,7 +10,7 @@ from unittest import main
 from tempfile import mkdtemp
 from os import remove, makedirs
 
-from os.path import exists, isdir, join, dirname
+from os.path import exists, isdir, join, dirname, splitext
 from shutil import rmtree, copyfile
 from json import dumps
 
@@ -88,19 +88,25 @@ class SummaryTestsNotDemux(PluginTestCase):
                                   'Generate HTML summary']),
                 'parameters': dumps(parameters),
                 'stuatus': 'running'}
-        job_id = self.qclient.post(
-            '/apitest/processing_job/', data=data)['job']
 
-        # Qiita will return a filepath, but in the test environment, these
-        # files fo not exist create them
-        files = self.qclient.get(
-            '/qiita_db/artifacts/%s/' % artifact_id)['files']
-        demux_fp = files['preprocessed_demux'][0]['filepath']
+        # obtain filepath from qiita central
+        sample_id = 1
+        demux_fp = join(self.base_data_dir, 'preprocessed_demux',
+                        '%i_seqs.demux' % sample_id)
         makedirs(dirname(demux_fp), exist_ok=True)
         copyfile(join(dirname(__file__), 'test_data', '101_seqs.demux'),
                  demux_fp)
         self.qclient.push_file_to_central(demux_fp)
         self._clean_up_files.append(demux_fp)
+        for extension in ['qual', 'fna']:
+            fp_file = splitext(demux_fp)[0] + '.' + extension
+            with open(fp_file, "w") as f:
+                f.write('this is an nearly empty test file\n')
+            self.qclient.push_file_to_central(fp_file)
+            self._clean_up_files.append(fp_file)
+
+        job_id = self.qclient.post(
+            '/apitest/processing_job/', data=data)['job']
 
         obs_success, obs_ainfo, obs_error = generate_html_summary(
             self.qclient, job_id, parameters, self.out_dir)
@@ -125,8 +131,7 @@ class SummaryTestsNotDemux(PluginTestCase):
         filepaths = {'raw_sff': [join(dirname(__file__), 'test_data',
                                       'Fasting_Example.sff.gz')]}
 
-        obs = _summary_not_demultiplexed(
-            self.qclient, artifact_type, filepaths)
+        obs = _summary_not_demultiplexed(artifact_type, filepaths)
         exp = ['<table border="1" class="dataframe">', '  <thead>',
                '    <tr style="text-align: right;">',
                '      <th>filename</th>', '      <th>md5</th>',
@@ -153,8 +158,7 @@ class SummaryTestsNotDemux(PluginTestCase):
         filepaths = {'raw_forward_seqs': [fwd_fp],
                      'raw_barcodes': [bcds_fp]}
 
-        obs = _summary_not_demultiplexed(
-            self.qclient, artifact_type, filepaths)
+        obs = _summary_not_demultiplexed(artifact_type, filepaths)
         exp = ['<table border="1" class="dataframe">', '  <thead>',
                '    <tr style="text-align: right;">',
                '      <th>filename</th>', '      <th>md5</th>',
@@ -185,8 +189,7 @@ class SummaryTestsNotDemux(PluginTestCase):
         filepaths = {'raw_forward_seqs': [fwd_fp],
                      'raw_barcodes': [bcds_fp]}
 
-        obs = _summary_not_demultiplexed(
-            self.qclient, artifact_type, filepaths)
+        obs = _summary_not_demultiplexed(artifact_type, filepaths)
         exp = ['<table border="1" class="dataframe">', '  <thead>',
                '    <tr style="text-align: right;">',
                '      <th>filename</th>', '      <th>md5</th>',
@@ -212,8 +215,7 @@ class SummaryTestsNotDemux(PluginTestCase):
 
         artifact_type = 'per_sample_FASTQ'
         filepaths = {'preprocessed_fastq': [fwd_fp]}
-        obs = _summary_not_demultiplexed(
-            self.qclient, artifact_type, filepaths)
+        obs = _summary_not_demultiplexed(artifact_type, filepaths)
         exp = [
             '<table border="1" class="dataframe">', '  <thead>',
             '    <tr style="text-align: right;">', '      <th>filename</th>',
@@ -237,8 +239,7 @@ class SummaryTestsNotDemux(PluginTestCase):
             'preprocessed_demux': [self.deposite_in_qiita_basedir(fp_demux)],
             'preprocessed_fastq': ['ignored']}
 
-        obs = _summary_demultiplexed(
-            self.qclient, artifact_type, filepaths)
+        obs = _summary_demultiplexed(artifact_type, filepaths)
         exp = ['<h3>Features</h3>',
                '<b>Total</b>: 49', '<br/>',
                '<b>Max</b>: 151', '<br/>',
@@ -253,8 +254,7 @@ class SummaryTestsNotDemux(PluginTestCase):
         artifact_type = 'Demultiplexed'
         filepaths = {'preprocessed_fastq': ['ignored']}
 
-        obs = _summary_demultiplexed(
-            self.qclient, artifact_type, filepaths)
+        obs = _summary_demultiplexed(artifact_type, filepaths)
         self.assertIsNone(obs)
 
     def test_summary_FASTA_preprocessed(self):
@@ -271,7 +271,7 @@ class SummaryTestsNotDemux(PluginTestCase):
                  self.deposite_in_qiita_basedir(fna_files)}
 
         obs = _summary_FASTA_preprocessed(
-            self.qclient, artifact_type, files, self.out_dir)
+            artifact_type, files, self.out_dir)
         exp = ['<!DOCTYPE html>\n', '<html lang="en">\n', '<head>\n',
                '    <meta http-equiv="Content-Type" content="text/html;'
                'charset=utf-8" >\n']
