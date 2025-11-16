@@ -22,7 +22,7 @@ from qtp_sequencing import plugin
 
 class PluginTests(PluginTestCase):
     def setUp(self):
-        self.out_dir = mkdtemp()
+        self.out_dir = mkdtemp(prefix=self.base_data_dir)
         self._clean_up_files = [self.out_dir]
 
     def tearDown(self):
@@ -81,8 +81,7 @@ class PluginTests(PluginTestCase):
         with open(fp2, 'w') as f:
             f.write(BARCODES)
         prep_info = {"1.SKB2.640194": {"not_a_run_prefix": "prefix1"}}
-        files = {'raw_forward_seqs': [self.deposite_in_qiita_basedir(fp)],
-                 'raw_barcodes': [self.deposite_in_qiita_basedir(fp2)]}
+        files = {'raw_forward_seqs': [fp], 'raw_barcodes': [fp2]}
         atype = "FASTQ"
         data = {'prep_info': dumps(prep_info),
                 'study': 1,
