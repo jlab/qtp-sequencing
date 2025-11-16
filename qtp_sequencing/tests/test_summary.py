@@ -91,7 +91,7 @@ class SummaryTestsNotDemux(PluginTestCase):
 
         # obtain filepath from qiita central
         sample_id = 1
-        demux_fp = join(self.base_data_dir, 'preprocessed_demux',
+        demux_fp = join(self.base_data_dir, 'preprocessed_data',
                         '%i_seqs.demux' % sample_id)
         makedirs(dirname(demux_fp), exist_ok=True)
         copyfile(join(dirname(__file__), 'test_data', '101_seqs.demux'),
@@ -228,7 +228,7 @@ class SummaryTestsNotDemux(PluginTestCase):
         self.assertCountEqual(obs, '\n'.join(exp))
 
     def test_summary_demultiplexed(self):
-        test_dir = mkdtemp()
+        test_dir = mkdtemp(prefix=self.base_data_dir)
         self._clean_up_files.append(test_dir)
 
         artifact_type = 'Demultiplexed'
@@ -236,7 +236,8 @@ class SummaryTestsNotDemux(PluginTestCase):
         copyfile(join(dirname(__file__), 'test_data', '101_seqs.demux'),
                  fp_demux)
         filepaths = {
-            'preprocessed_demux': [self.deposite_in_qiita_basedir(fp_demux)],
+            'preprocessed_demux': [self.push_file_to_central(
+                join(self.base_data_dir, fp_demux))],
             'preprocessed_fastq': ['ignored']}
 
         obs = _summary_demultiplexed(artifact_type, filepaths)
@@ -267,8 +268,8 @@ class SummaryTestsNotDemux(PluginTestCase):
             output = join(indir, '%s.fasta.gz' % rp)
             copyfile(input, output)
             fna_files.append(output)
-        files = {'preprocessed_fasta':
-                 self.deposite_in_qiita_basedir(fna_files)}
+        files = {'preprocessed_fasta': self.push_file_to_central(
+            join(self.base_data_dir, fna_files))}
 
         obs = _summary_FASTA_preprocessed(
             artifact_type, files, self.out_dir)
