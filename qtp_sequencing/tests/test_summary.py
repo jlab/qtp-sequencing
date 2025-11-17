@@ -269,8 +269,7 @@ class SummaryTestsNotDemux(PluginTestCase):
             output = join(indir, '%s.fasta.gz' % rp)
             copyfile(input, output)
             fna_files.append(output)
-        files = {'preprocessed_fasta': self.qclient.push_file_to_central(
-            join(self.base_data_dir, fna_files))}
+        files = {'preprocessed_fasta': fna_files}
 
         obs = _summary_FASTA_preprocessed(
             artifact_type, files, self.out_dir)
