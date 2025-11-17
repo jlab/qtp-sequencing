@@ -52,7 +52,8 @@ class PluginTests(PluginTestCase):
         # Qiita will return a filepath, but in the test environment, these
         # files do not exist - create them
         files = self.qclient.get(
-            '/qiita_db/artifacts/%s/' % artifact_id)['files']
+            '/qiita_db/artifacts/%s/' % artifact_id,
+            no_file_fetching=True)['files']
 
         bcds_fp = files['raw_barcodes'][0]['filepath']
         self._clean_up_files.append(bcds_fp)
