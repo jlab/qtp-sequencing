@@ -49,7 +49,8 @@ class SummaryTestsNotDemux(PluginTestCase):
         # Qiita will return a filepath, but in the test environment, these
         # files do not exist - create them
         files = self.qclient.get(
-            '/qiita_db/artifacts/%s/' % artifact_id)['files']
+            '/qiita_db/artifacts/%s/' % artifact_id,
+            no_file_fetching=True)['files']
 
         bcds_fp = files['raw_barcodes'][0]['filepath']
         self._clean_up_files.append(bcds_fp)
@@ -236,7 +237,7 @@ class SummaryTestsNotDemux(PluginTestCase):
         copyfile(join(dirname(__file__), 'test_data', '101_seqs.demux'),
                  fp_demux)
         filepaths = {
-            'preprocessed_demux': [self.push_file_to_central(
+            'preprocessed_demux': [self.qclient.push_file_to_central(
                 join(self.base_data_dir, fp_demux))],
             'preprocessed_fastq': ['ignored']}
 
@@ -268,7 +269,7 @@ class SummaryTestsNotDemux(PluginTestCase):
             output = join(indir, '%s.fasta.gz' % rp)
             copyfile(input, output)
             fna_files.append(output)
-        files = {'preprocessed_fasta': self.push_file_to_central(
+        files = {'preprocessed_fasta': self.qclient.push_file_to_central(
             join(self.base_data_dir, fna_files))}
 
         obs = _summary_FASTA_preprocessed(
