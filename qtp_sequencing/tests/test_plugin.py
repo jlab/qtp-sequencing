@@ -22,7 +22,7 @@ from qtp_sequencing import plugin
 
 class PluginTests(PluginTestCase):
     def setUp(self):
-        self.out_dir = mkdtemp(prefix=self.base_data_dir)
+        self.out_dir = mkdtemp()
         self._clean_up_files = [self.out_dir]
 
     def tearDown(self):
