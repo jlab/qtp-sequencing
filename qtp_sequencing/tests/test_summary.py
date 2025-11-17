@@ -60,6 +60,7 @@ class SummaryTestsNotDemux(PluginTestCase):
         self.qclient.push_file_to_central(bcds_fp)
         fwd_fp = files['raw_forward_seqs'][0]['filepath']
         self._clean_up_files.append(fwd_fp)
+        makedirs(dirname(fwd_fp), exist_ok=True)
         with GzipFile(fwd_fp, mode='w', mtime=1) as fh:
             fh.write(READS.encode())
         self.qclient.push_file_to_central(fwd_fp)
@@ -75,8 +76,7 @@ class SummaryTestsNotDemux(PluginTestCase):
 
         # asserting content of html
         res = self.qclient.get("/qiita_db/artifacts/%s/" % artifact_id)
-        html_fp = self.qclient.fetch_file_from_central(
-            res['files']['html_summary'][0]['filepath'])
+        html_fp = res['files']['html_summary'][0]['filepath']
         self._clean_up_files.append(html_fp)
         with open(html_fp) as html_f:
             html = html_f.read()

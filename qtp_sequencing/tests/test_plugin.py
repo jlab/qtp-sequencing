@@ -82,7 +82,8 @@ class PluginTests(PluginTestCase):
         with open(fp2, 'w') as f:
             f.write(BARCODES)
         prep_info = {"1.SKB2.640194": {"not_a_run_prefix": "prefix1"}}
-        files = {'raw_forward_seqs': [fp], 'raw_barcodes': [fp2]}
+        files = {'raw_forward_seqs': [fp],
+                 'raw_barcodes': [fp2]}
         atype = "FASTQ"
         data = {'prep_info': dumps(prep_info),
                 'study': 1,

@@ -683,9 +683,7 @@ class ValidateTests(PluginTestCase):
                          "'Demultiplexed'")
 
     def test_validate_success(self):
-        # test_dir = self._add_qiita_base_dir(join('uploads', '1'), True)
         test_dir = mkdtemp(prefix=self.base_data_dir)
-        # makedirs(test_dir, exist_ok=True)
         out_dir = mkdtemp(prefix=self.base_data_dir)
         self._clean_up_files.append(test_dir)
         self._clean_up_files.append(out_dir)
