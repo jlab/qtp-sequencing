@@ -54,6 +54,7 @@ class SummaryTestsNotDemux(PluginTestCase):
 
         bcds_fp = files['raw_barcodes'][0]['filepath']
         self._clean_up_files.append(bcds_fp)
+        makedirs(dirname(bcds_fp), exist_ok=True)
         with GzipFile(bcds_fp, mode='w', mtime=1) as fh:
             fh.write(BARCODES.encode())
         self.qclient.push_file_to_central(bcds_fp)
