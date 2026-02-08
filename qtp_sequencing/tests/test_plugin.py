@@ -7,10 +7,10 @@
 # -----------------------------------------------------------------------------
 
 from unittest import main
-from os import remove, makedirs
-from os.path import exists, isdir, join, dirname
+from os import remove, makedirs, close
+from os.path import exists, isdir, dirname
 from shutil import rmtree
-from tempfile import mkdtemp
+from tempfile import mkdtemp, mkstemp
 from json import dumps
 from gzip import GzipFile
 from time import sleep
@@ -75,12 +75,16 @@ class PluginTests(PluginTestCase):
         self.assertEqual(obs['status'], 'success')
 
     def test_plugin_validate(self):
-        fp = join(self.out_dir, 'prefix1.fastq')
-        with open(fp, 'w') as f:
-            f.write(READS)
-        fp2 = join(self.out_dir, 'prefix1_b.fastq')
-        with open(fp2, 'w') as f:
-            f.write(BARCODES)
+        f, fp = mkstemp(suffix="prefix1.fastq", dir=self.base_data_dir)
+        f.write(READS)
+        close(f)
+        self.qclient.push_file_to_central(fp)
+
+        f, fp2 = mkstemp(suffix="prefix1_b.fastq", dir=self.base_data_dir)
+        f.write(BARCODES)
+        close(f)
+        self.qclient.push_file_to_central(fp2)
+
         prep_info = {"1.SKB2.640194": {"not_a_run_prefix": "prefix1"}}
         files = {'raw_forward_seqs': [fp],
                  'raw_barcodes': [fp2]}
@@ -109,10 +113,14 @@ class PluginTests(PluginTestCase):
         self.assertEqual(obs['status'], 'success')
 
     def test_plugin_error(self):
-        parameters = {'template': 1,
-                      'analysis': None,
-                      'files': dumps({'log': ['/path/to/file1.log']}),
-                      'artifact_type': "Demultiplexed"}
+        fd, log_fp = mkstemp(suffix=".file1.log", dir=self.base_data_dir)
+        close(fd)
+        parameters = {
+            'template': 1,
+            'analysis': None,
+            'files': dumps(
+                {'log': [self.qclient.push_file_to_central(log_fp)]}),
+            'artifact_type': "Demultiplexed"}
         data = {'command': dumps(
             ['Sequencing Data Type', '2022.11', 'Validate']),
                 'parameters': dumps(parameters),
