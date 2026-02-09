@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 
 from unittest import main
-from os import remove, makedirs, close
+from os import remove, makedirs, close, write
 from os.path import exists, isdir, dirname
 from shutil import rmtree
 from tempfile import mkdtemp, mkstemp
@@ -75,13 +75,14 @@ class PluginTests(PluginTestCase):
         self.assertEqual(obs['status'], 'success')
 
     def test_plugin_validate(self):
+        makedirs(self.base_data_dir, exist_ok=True)
         f, fp = mkstemp(suffix="prefix1.fastq", dir=self.base_data_dir)
-        f.write(READS)
+        write(f, READS)
         close(f)
         self.qclient.push_file_to_central(fp)
 
         f, fp2 = mkstemp(suffix="prefix1_b.fastq", dir=self.base_data_dir)
-        f.write(BARCODES)
+        write(f, BARCODES)
         close(f)
         self.qclient.push_file_to_central(fp2)
 
@@ -113,6 +114,7 @@ class PluginTests(PluginTestCase):
         self.assertEqual(obs['status'], 'success')
 
     def test_plugin_error(self):
+        makedirs(self.base_data_dir, exist_ok=True)
         fd, log_fp = mkstemp(suffix=".file1.log", dir=self.base_data_dir)
         close(fd)
         parameters = {
