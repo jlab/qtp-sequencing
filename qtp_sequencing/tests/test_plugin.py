@@ -77,12 +77,12 @@ class PluginTests(PluginTestCase):
     def test_plugin_validate(self):
         makedirs(self.base_data_dir, exist_ok=True)
         f, fp = mkstemp(suffix="prefix1.fastq", dir=self.base_data_dir)
-        write(f, READS)
+        write(f, READS.encode("utf-8"))
         close(f)
         self.qclient.push_file_to_central(fp)
 
         f, fp2 = mkstemp(suffix="prefix1_b.fastq", dir=self.base_data_dir)
-        write(f, BARCODES)
+        write(f, BARCODES.encode("utf-8"))
         close(f)
         self.qclient.push_file_to_central(fp2)
 
