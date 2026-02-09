@@ -24,6 +24,7 @@ class PluginTests(PluginTestCase):
     def setUp(self):
         self.out_dir = mkdtemp()
         self._clean_up_files = [self.out_dir]
+        makedirs(self.base_data_dir, exist_ok=True)
 
     def tearDown(self):
         for fp in self._clean_up_files:
@@ -72,10 +73,11 @@ class PluginTests(PluginTestCase):
         plugin("https://localhost:21174", job_id, self.out_dir)
         self._wait_job(job_id)
         obs = self.qclient.get_job_info(job_id)
+        import sys
+        print("STEFAN obs=%s" % obs, file=sys.stderr)
         self.assertEqual(obs['status'], 'success')
 
     def test_plugin_validate(self):
-        makedirs(self.base_data_dir, exist_ok=True)
         f, fp = mkstemp(suffix="prefix1.fastq", dir=self.base_data_dir)
         write(f, READS.encode("utf-8"))
         close(f)
@@ -111,10 +113,11 @@ class PluginTests(PluginTestCase):
         plugin("https://localhost:21174", job_id, self.out_dir)
         self._wait_job(job_id)
         obs = self.qclient.get_job_info(job_id)
+        import sys
+        print("STEFAN obs=%s" % obs, file=sys.stderr)
         self.assertEqual(obs['status'], 'success')
 
     def test_plugin_error(self):
-        makedirs(self.base_data_dir, exist_ok=True)
         fd, log_fp = mkstemp(suffix=".file1.log", dir=self.base_data_dir)
         close(fd)
         parameters = {
