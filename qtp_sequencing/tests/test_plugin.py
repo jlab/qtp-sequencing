@@ -73,8 +73,6 @@ class PluginTests(PluginTestCase):
         plugin("https://localhost:21174", job_id, self.out_dir)
         self._wait_job(job_id)
         obs = self.qclient.get_job_info(job_id)
-        import sys
-        print("STEFAN obs=%s" % obs, file=sys.stderr)
         self.assertEqual(obs['status'], 'success')
 
     def test_plugin_validate(self):
@@ -113,8 +111,6 @@ class PluginTests(PluginTestCase):
         plugin("https://localhost:21174", job_id, self.out_dir)
         self._wait_job(job_id)
         obs = self.qclient.get_job_info(job_id)
-        import sys
-        print("STEFAN obs=%s" % obs, file=sys.stderr)
         self.assertEqual(obs['status'], 'success')
 
     def test_plugin_error(self):
