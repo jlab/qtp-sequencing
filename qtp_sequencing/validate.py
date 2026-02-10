@@ -85,13 +85,6 @@ def _gzip_file(qclient, filepath, test=False):
                 # coupling, as I hesitate to expose endpoints which allow
                 # deletion of files. Users might see uncompressed left overs in
                 # their download sections therefore.
-                # When Qiita is in test mode, a ForbiddenError will be thrown
-                # as test files are partially located outside of BASE_DATA_DIR
-                try:
-                    # removing non gz file
-                    qclient.delete_file_from_central(filepath)
-                except ForbiddenError:
-                    pass
 
                 return_fp = qclient.push_file_to_central('%s.gz' % filepath)
     return return_fp, error
