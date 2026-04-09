@@ -82,7 +82,6 @@ jobs:
 
           export QIITA_ROOTCA_CERT=`pwd`/qiita-dev/qiita_core/support_files/ci_rootca.crt
           export QIITA_CONFIG_FP=`pwd`/qiita-dev/qiita_core/support_files/config_test_local.cfg
-
           pip install -U pip
           pip install .
           configure_qtp_sequencing --env-script "source /home/runner/.profile; conda activate qtp-sequencing" --ca-cert $QIITA_ROOTCA_CERT
