@@ -7,6 +7,7 @@
 # -----------------------------------------------------------------------------
 
 from os.path import basename, join, splitext, getsize, dirname, exists
+from os import remove
 from json import loads
 from shutil import copy
 from h5py import File
@@ -15,7 +16,6 @@ from collections import defaultdict
 
 from qiita_client import ArtifactInfo
 from qiita_client.util import system_call
-from qiita_client.exceptions import ForbiddenError
 from qiita_files.util import open_file
 from qiita_files.demux import to_hdf5, to_ascii_file
 
@@ -85,6 +85,8 @@ def _gzip_file(qclient, filepath, test=False):
                 # coupling, as I hesitate to expose endpoints which allow
                 # deletion of files. Users might see uncompressed left overs in
                 # their download sections therefore.
+                if qclient._plugincoupling == 'filesystem':
+                    remove(filepath)
 
                 return_fp = qclient.push_file_to_central('%s.gz' % filepath)
     return return_fp, error
