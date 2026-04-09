@@ -1,4 +1,4 @@
-Sequencing Data Type Plugin
+Sequencing Data Type Plugin 
 ===========================
 
 |Build Status|
